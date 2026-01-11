@@ -1,0 +1,5 @@
+{
+  "name": "Bulk AI Product Description Generator",
+  "description": "A professional SaaS application for generating SEO-optimized product descriptions using Gemini AI and Supabase.",
+  "requestFramePermissions": []
+}
