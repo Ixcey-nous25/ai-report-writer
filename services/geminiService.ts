@@ -1,4 +1,4 @@
-// Sahi import statement (sirf package name use karein)
+// Sahi import format ye hai:
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ProductInput } from "../types";
 
@@ -6,8 +6,11 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export const generateProductDescription = async (input: ProductInput): Promise<string> => {
   const genAI = new GoogleGenerativeAI(API_KEY);
-  // Humne pehle discuss kiya tha, model name 1.5-flash hi rehne dein
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Model name 1.5-flash hi rehne dein kyunki ye naya aur stable hai
+ // geminiService.ts mein check karein
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash", // Iska naam ek baar confirm karlein ki koi typo na ho
+});
 
   const prompt = `
     Generate a high-converting, SEO-optimized product description for the following product:
