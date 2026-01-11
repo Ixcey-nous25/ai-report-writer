@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Library name check karein
+import { GoogleGenerativeAI } from "@google/generative-ai": "https://esm.sh/@google/generative-ai"
 import { ProductInput } from "../types";
 
 // Vite mein environment variables aise access hote hain
