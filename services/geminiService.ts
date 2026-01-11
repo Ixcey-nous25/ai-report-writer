@@ -1,11 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai": "https://esm.sh/@google/generative-ai"
+// Sahi import statement (sirf package name use karein)
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ProductInput } from "../types";
 
-// Vite mein environment variables aise access hote hain
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export const generateProductDescription = async (input: ProductInput): Promise<string> => {
   const genAI = new GoogleGenerativeAI(API_KEY);
+  // Humne pehle discuss kiya tha, model name 1.5-flash hi rehne dein
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `
