@@ -38,18 +38,36 @@ const App: React.FC = () => {
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedDescription[]>([]);
 
-  // Listen for auth changes
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+  // 1. Pehle ek reset function banayein (App component ke andar)
+const resetAppState = () => {
+  setInput({
+    name: '',
+    features: '',
+    targetAudience: '',
+    tone: 'Professional'
+  });
+  setLastGenerated(null);
+  setHistory([]); // History bhi purani na dikhe
+};
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+// 2. Auth change wale useEffect mein ise call karein
+useEffect(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setUser(session?.user ?? null);
+    if (!session) resetAppState(); // Agar session khatam toh state reset
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    setUser(session?.user ?? null);
+    
+    // Jab user Sign Out kare ya naya user Sign In kare, state saaf kar do
+    if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+      resetAppState();
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   // Fetch history when user changes
   useEffect(() => {
@@ -73,7 +91,7 @@ const App: React.FC = () => {
     setHistory(data || []);
   }
 };
-  
+
  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validation: Agar email/password khali hai toh aage mat badho
@@ -217,7 +235,11 @@ const App: React.FC = () => {
     <Layout 
       activeView={view} 
       setView={setView} 
-      onLogout={() => supabase.auth.signOut()}
+      onLogout={async () => {
+        await supabase.auth.signOut();
+        resetAppState(); // Logout hote hi sab khali kar do
+        setView('dashboard'); // Wapis dashboard view par le aao
+       }} 
       userEmail={user.email}
     >
       {view === 'dashboard' && (
