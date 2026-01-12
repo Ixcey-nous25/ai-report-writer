@@ -71,23 +71,45 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+ const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validation: Agar email/password khali hai toh aage mat badho
+    if (!authEmail || !authPassword) {
+      alert("Please enter both email and password");
+      return;
+    }
+    
     setAuthLoading(true);
-    const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
-    if (error) alert(error.message);
-    else alert('Check your email for confirmation!');
+    const { error } = await supabase.auth.signUp({ 
+      email: authEmail, 
+      password: authPassword 
+    });
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      alert('Sign up successful! You can now log in.');
+    }
     setAuthLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!authEmail || !authPassword) {
+      alert("Please enter both email and password");
+      return;
+    }
+
     setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+    const { error } = await supabase.auth.signInWithPassword({ 
+      email: authEmail, 
+      password: authPassword 
+    });
+    
     if (error) alert(error.message);
     setAuthLoading(false);
   };
-
+  
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.name || !input.features) return;
@@ -162,7 +184,8 @@ const App: React.FC = () => {
               />
             </div>
             <div className="flex gap-4 pt-2">
-              <button 
+              <button
+                type="button" 
                 onClick={handleSignIn}
                 disabled={authLoading}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
@@ -170,6 +193,7 @@ const App: React.FC = () => {
                 Sign In
               </button>
               <button 
+                type="button"
                 onClick={handleSignUp}
                 disabled={authLoading}
                 className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
