@@ -236,10 +236,10 @@ useEffect(() => {
       activeView={view} 
       setView={setView} 
       onLogout={async () => {
-        await supabase.auth.signOut();
-        resetAppState(); // Logout hote hi sab khali kar do
-        setView('dashboard'); // Wapis dashboard view par le aao
-       }} 
+      await supabase.auth.signOut();
+    // Ye line browser ko refresh kar degi aur saari state zero ho jayegi
+        window.location.href = '/'; 
+     }} 
       userEmail={user.email}
     >
       {view === 'dashboard' && (
