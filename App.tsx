@@ -227,10 +227,17 @@ const App: React.FC = () => {
     /* Key based reset: Jab user ID badlegi, pura UI refresh ho jayega */
     <div key={user?.id || 'guest'} className="min-h-screen bg-slate-50">
       <Layout 
-        activeView={view} 
-        setView={setView} 
-        onLogout={() => supabase.auth.signOut()} 
-        userEmail={user.email}
+       activeView={view} 
+       setView={setView} 
+       onLogout={async () => {
+         // 1. Pehle Supabase se logout karein
+        await supabase.auth.signOut();
+    
+    // 2. Phir site ko refresh kar dein
+    // Isse user seedha login page par pahunch jayega aur memory clear ho jayegi
+       window.location.reload(); 
+      }} 
+       userEmail={user.email}
       >
         {view === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-500">
