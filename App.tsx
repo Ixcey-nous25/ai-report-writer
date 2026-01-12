@@ -14,7 +14,8 @@ import {
   Zap,
   Mail,
   Lock,
-  History as HistoryIcon
+  History as HistoryIcon,
+  ChevronRight
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -36,92 +37,52 @@ const App: React.FC = () => {
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedDescription[]>([]);
 
-  // 1. Unified Auth and State Reset Logic
   useEffect(() => {
-    // Check current session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      
-      // Jab bhi login ya logout ho, saari state ko zero kar do
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-        setInput({
-          name: '',
-          features: '',
-          targetAudience: '',
-          tone: 'Professional'
-        });
+        setInput({ name: '', features: '', targetAudience: '', tone: 'Professional' });
         setLastGenerated(null);
         setHistory([]);
         setAuthEmail('');
         setAuthPassword('');
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Fetch history only when a valid user exists
   useEffect(() => {
-    if (user?.id) {
-      fetchHistory();
-    }
+    if (user?.id) fetchHistory();
   }, [user?.id]);
 
   const fetchHistory = async () => {
     if (!user?.id) return;
-
     const { data, error } = await supabase
       .from('descriptions')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching history:', error);
-    } else {
-      setHistory(data || []);
-    }
+    if (!error) setHistory(data || []);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authEmail || !authPassword) {
-      alert("Please enter both email and password");
-      return;
-    }
-    
+    if (!authEmail || !authPassword) return alert("Please enter both email and password");
     setAuthLoading(true);
-    const { error } = await supabase.auth.signUp({ 
-      email: authEmail, 
-      password: authPassword 
-    });
-    
-    if (error) {
-      alert(error.message);
-    } else {
-      alert('Sign up successful! You can now log in.');
-    }
+    const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    if (error) alert(error.message); else alert('Sign up successful! You can now log in.');
     setAuthLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authEmail || !authPassword) {
-      alert("Please enter both email and password");
-      return;
-    }
-
+    if (!authEmail || !authPassword) return alert("Please enter both email and password");
     setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ 
-      email: authEmail, 
-      password: authPassword 
-    });
-    
+    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
     if (error) alert(error.message);
     setAuthLoading(false);
   };
@@ -129,20 +90,15 @@ const App: React.FC = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.name || !input.features) return;
-
     setLoading(true);
     try {
       const result = await generateProductDescription(input);
       setLastGenerated(result);
-      
-      const { error } = await supabase
-        .from('descriptions')
-        .insert([{
+      const { error } = await supabase.from('descriptions').insert([{
           product_name: input.name,
           description: result,
           user_id: user.id
         }]);
-
       if (error) console.error('Error saving to DB:', error);
       fetchHistory();
     } catch (err) {
@@ -159,100 +115,108 @@ const App: React.FC = () => {
   };
 
   const deleteHistoryItem = async (id: string) => {
-    const { error } = await supabase
-      .from('descriptions')
-      .delete()
-      .eq('id', id);
-    
-    if (error) alert(error.message);
-    else fetchHistory();
+    const { error } = await supabase.from('descriptions').delete().eq('id', id);
+    if (error) alert(error.message); else fetchHistory();
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-          <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <ShoppingCart className="text-white w-8 h-8" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 selection:bg-indigo-100">
+        <div className="w-full max-w-[440px]">
+          <div className="bg-white p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60">
+            <div className="mb-10 flex flex-col items-center">
+              <div className="bg-slate-900 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-slate-200">
+                <ShoppingCart className="text-white w-6 h-6" />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
+              <p className="text-slate-500 mt-2 text-sm">Enter your credentials to access your dashboard</p>
+            </div>
+            
+            <form className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+                  <input 
+                    type="email" 
+                    placeholder="name@company.com"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400 text-slate-900"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400 text-slate-900"
+                    value={authPassword}
+                    onChange={e => setAuthPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  type="button" 
+                  onClick={handleSignIn}
+                  disabled={authLoading}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-2xl transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+                >
+                  {authLoading ? <Loader2 className="animate-spin w-5 h-5" /> : "Sign in to Dashboard"}
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleSignUp}
+                  disabled={authLoading}
+                  className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold py-4 rounded-2xl transition-all disabled:opacity-50"
+                >
+                  Create an account
+                </button>
+              </div>
+            </form>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2 text-center">AI Copywriter SaaS</h1>
-          <p className="text-slate-500 mb-8 text-center">Generate high-converting SEO product descriptions.</p>
-          
-          <form className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
-              <input 
-                type="email" 
-                placeholder="Email address"
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={authEmail}
-                onChange={e => setAuthEmail(e.target.value)}
-              />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
-              <input 
-                type="password" 
-                placeholder="Password"
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={authPassword}
-                onChange={e => setAuthPassword(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-4 pt-2">
-              <button
-                type="button" 
-                onClick={handleSignIn}
-                disabled={authLoading}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
-              >
-                Sign In
-              </button>
-              <button 
-                type="button"
-                onClick={handleSignUp}
-                disabled={authLoading}
-                className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all disabled:opacity-50"
-              >
-                Sign Up
-              </button>
-            </div>
-          </form>
+          <p className="text-center mt-8 text-slate-400 text-sm">
+            Powered by Gemini Pro & Supabase
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    /* Key based reset: Jab user ID badlegi, pura UI refresh ho jayega */
-    <div key={user?.id || 'guest'} className="min-h-screen bg-slate-50">
+    <div key={user?.id || 'guest'} className="min-h-screen bg-slate-50 selection:bg-indigo-100">
       <Layout 
        activeView={view} 
        setView={setView} 
        onLogout={async () => {
-         // 1. Pehle Supabase se logout karein
-        await supabase.auth.signOut();
-    
-    // 2. Phir site ko refresh kar dein
-    // Isse user seedha login page par pahunch jayega aur memory clear ho jayegi
-       window.location.reload(); 
-      }} 
+         await supabase.auth.signOut();
+         window.location.reload(); 
+       }} 
        userEmail={user.email}
       >
         {view === 'dashboard' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <header>
-              <h2 className="text-3xl font-bold text-slate-900">New Description</h2>
-              <p className="text-slate-500">Transform your product features into sales copy in seconds.</p>
+          <div className="max-w-6xl mx-auto space-y-12 py-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <header className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-2">
+                <Sparkles size={14} /> AI Engine Active
+              </div>
+              <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Create Description</h2>
+              <p className="text-lg text-slate-500 max-w-2xl leading-relaxed">Fill in the details below to generate a high-converting, SEO-optimized product description.</p>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <form onSubmit={handleGenerate} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Product Name</label>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+              <form onSubmit={handleGenerate} className="lg:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.02)] space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Product Name</label>
                   <input 
                     type="text" 
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400"
                     placeholder="e.g. EcoBottl 2.0"
                     value={input.name}
                     onChange={e => setInput({...input, name: e.target.value})}
@@ -260,32 +224,32 @@ const App: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Key Features (One per line)</label>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Key Features</label>
                   <textarea 
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all min-h-[120px]"
-                    placeholder="- BPA Free&#10;- 24hr Temperature retention&#10;- Recycled materials"
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all min-h-[160px] resize-none placeholder:text-slate-400"
+                    placeholder="List your product's best features..."
                     value={input.features}
                     onChange={e => setInput({...input, features: e.target.value})}
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Target Audience</label>
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Audience</label>
                     <input 
                       type="text" 
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="e.g. Athletes"
+                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all"
+                      placeholder="e.g. Eco-conscious athletes"
                       value={input.targetAudience}
                       onChange={e => setInput({...input, targetAudience: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Tone</label>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tone of Voice</label>
                     <select 
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all appearance-none cursor-pointer"
                       value={input.tone}
                       onChange={e => setInput({...input, tone: e.target.value})}
                     >
@@ -300,47 +264,52 @@ const App: React.FC = () => {
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  className="w-full bg-slate-900 hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-xl shadow-slate-200 mt-4 group"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
-                  {loading ? 'Generating...' : 'Generate SEO Copy'}
+                  {loading ? <Loader2 className="animate-spin" /> : <Sparkles className="group-hover:text-indigo-400 transition-colors" size={20} />}
+                  {loading ? 'Generating...' : 'Generate Copy'}
                 </button>
               </form>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Output Preview</h3>
+              <div className="lg:col-span-3 space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Output Preview</h3>
                   {lastGenerated && (
                     <button 
                       onClick={() => copyToClipboard(lastGenerated, 'last')}
-                      className="text-indigo-600 hover:text-indigo-700 text-sm font-semibold flex items-center gap-1"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
                     >
-                      {copyingId === 'last' ? <CheckCircle size={16} /> : <Copy size={16} />}
-                      {copyingId === 'last' ? 'Copied' : 'Copy'}
+                      {copyingId === 'last' ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
+                      {copyingId === 'last' ? 'Copied to clipboard' : 'Copy result'}
                     </button>
                   )}
                 </div>
                 
-                <div className="bg-slate-100 border-2 border-dashed border-slate-200 rounded-2xl p-6 min-h-[400px] flex flex-col items-center justify-center">
+                <div className="bg-white border border-slate-200 rounded-[2rem] p-8 min-h-[580px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
                   {!lastGenerated && !loading && (
-                    <div className="text-center space-y-3 max-w-xs">
-                      <div className="bg-slate-200 w-12 h-12 rounded-full flex items-center justify-center mx-auto">
-                        <Zap className="text-slate-400" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10">
+                      <div className="bg-slate-50 w-20 h-20 rounded-3xl flex items-center justify-center mb-6 ring-1 ring-slate-100">
+                        <Zap className="text-slate-300 w-8 h-8" />
                       </div>
-                      <p className="text-slate-400 text-sm italic">Generated copy will appear here.</p>
+                      <h4 className="text-slate-900 font-bold text-lg mb-2">Ready to generate</h4>
+                      <p className="text-slate-400 text-sm max-w-[240px] leading-relaxed">Enter your product details and click generate to see the magic happen.</p>
                     </div>
                   )}
                   
                   {loading && (
-                    <div className="text-center space-y-4">
-                      <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto" />
-                      <p className="text-slate-600 font-medium">Brewing high-converting copy...</p>
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center">
+                      <div className="relative">
+                         <div className="w-16 h-16 border-4 border-indigo-50 border-t-indigo-600 rounded-full animate-spin"></div>
+                         <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 w-6 h-6 animate-pulse" />
+                      </div>
+                      <p className="text-slate-900 font-bold mt-6 text-lg">Writing premium copy...</p>
+                      <p className="text-slate-500 text-sm">This usually takes about 3-5 seconds</p>
                     </div>
                   )}
 
                   {lastGenerated && !loading && (
-                    <div className="w-full h-full bg-white p-6 rounded-xl border border-slate-200 prose prose-slate">
-                      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                    <div className="animate-in fade-in duration-1000">
+                      <div className="whitespace-pre-wrap text-slate-700 text-lg leading-[1.8] font-medium selection:bg-indigo-100">
                         {lastGenerated}
                       </div>
                     </div>
@@ -352,62 +321,72 @@ const App: React.FC = () => {
         )}
 
         {view === 'history' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-            <header className="flex justify-between items-end">
-              <div>
-                <h2 className="text-3xl font-bold text-slate-900">Your History</h2>
-                <p className="text-slate-500">Manage and reuse previously generated product copy.</p>
-              </div>
+          <div className="max-w-5xl mx-auto space-y-10 py-10 animate-in slide-in-from-bottom-4 duration-700">
+            <header>
+              <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">History</h2>
+              <p className="text-lg text-slate-500 mt-2">Manage and revisit your previously generated assets.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-6">
               {history.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-4">
-                  <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                <div className="bg-white border border-slate-200 rounded-[2.5rem] p-20 text-center shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+                  <div className="bg-slate-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8 ring-1 ring-slate-100">
                     <HistoryIcon className="text-slate-300 w-10 h-10" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800">No history yet</h3>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">No history yet</h3>
+                  <p className="text-slate-500 mb-8 max-w-xs mx-auto">Your generated descriptions will appear here for easy access later.</p>
                   <button 
                     onClick={() => setView('dashboard')}
-                    className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-all"
+                    className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 inline-flex items-center gap-2"
                   >
-                    Create Your First Description
+                    Start Creating <ChevronRight size={18} />
                   </button>
                 </div>
               ) : (
-                history.map((item) => (
-                  <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                    <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                      <div>
-                        <h3 className="font-bold text-lg text-slate-900">{item.product_name}</h3>
-                        <p className="text-xs text-slate-400 font-medium">
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {history.map((item) => (
+                    <div key={item.id} className="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.04)] transition-all group flex flex-col h-full">
+                      <div className="p-8 border-b border-slate-50 flex items-start justify-between bg-white">
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-xl text-slate-900 tracking-tight">{item.product_name}</h3>
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                            {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => copyToClipboard(item.description, item.id)}
+                            className={`p-3 rounded-xl transition-all border ${
+                              copyingId === item.id 
+                              ? 'bg-green-50 border-green-100 text-green-600' 
+                              : 'bg-white border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100'
+                            }`}
+                          >
+                            {copyingId === item.id ? <CheckCircle size={18} /> : <Copy size={18} />}
+                          </button>
+                          <button 
+                            onClick={() => deleteHistoryItem(item.id)}
+                            className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100 rounded-xl transition-all"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button 
+                      <div className="p-8 text-slate-600 text-sm leading-relaxed whitespace-pre-wrap flex-grow line-clamp-[8]">
+                        {item.description}
+                      </div>
+                      <div className="px-8 pb-8 pt-0">
+                         <div className="h-[1px] w-full bg-slate-50 mb-6"></div>
+                         <button 
                           onClick={() => copyToClipboard(item.description, item.id)}
-                          className={`p-2 rounded-lg transition-all ${
-                            copyingId === item.id 
-                            ? 'bg-green-50 text-green-600' 
-                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          {copyingId === item.id ? <CheckCircle size={18} /> : <Copy size={18} />}
-                        </button>
-                        <button 
-                          onClick={() => deleteHistoryItem(item.id)}
-                          className="p-2 bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                          className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-xl text-xs uppercase tracking-widest transition-all"
+                         >
+                           Quick Copy
+                         </button>
                       </div>
                     </div>
-                    <div className="p-6 text-slate-600 text-sm line-clamp-3 whitespace-pre-wrap leading-relaxed">
-                      {item.description}
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
