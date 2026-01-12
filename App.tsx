@@ -59,18 +59,21 @@ const App: React.FC = () => {
   }, [user]);
 
   const fetchHistory = async () => {
-    const { data, error } = await supabase
-      .from('descriptions')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching history:', error);
-    } else {
-      setHistory(data || []);
-    }
-  };
+  if (!user) return; // Agar user logged in nahi hai toh return kar jao
 
+  const { data, error } = await supabase
+    .from('descriptions')
+    .select('*')
+    .eq('user_id', user.id) // <--- Ye line sabse zaruri hai!
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching history:', error);
+  } else {
+    setHistory(data || []);
+  }
+};
+  
  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validation: Agar email/password khali hai toh aage mat badho
@@ -109,7 +112,7 @@ const App: React.FC = () => {
     if (error) alert(error.message);
     setAuthLoading(false);
   };
-  
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.name || !input.features) return;
